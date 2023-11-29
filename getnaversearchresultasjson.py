@@ -5,43 +5,45 @@ import sys
 import datetime
 import time
 
-def get_request_url(url):
+def get_request_url(url): # Get request url & Get response
     req = urllib.request.Request(url)
-    req.add_header("X-Naver-Client-Id", "")
-    req.add_header("X-Naver-Client-Secret", "")
+    req.add_header("X-Naver-Client-Id", "") # Naver API Client ID
+    req.add_header("X-Naver-Client-Secret", "") # Naver API Client Secret
 
     try:
-        response = urllib.request.urlopen(req)
+        response = urllib.request.urlopen(req) # Get response
 
-        if response.getcode() == 200:
-            print("[%s] Url Request Success" % datetime.datetime.now())
-            return response.read().decode('utf-8')
+        if response.getcode() == 200: # If response is success
+            print("[%s] Url Request Success" % datetime.datetime.now()) # Print success message
+            return response.read().decode('utf-8') # Returns response data
     
-    except Exception as e:
-        print(e)
+    except Exception as e: # If response is fail
+        print(e) # Print error message
         print("[%s] Error for URL : %s" % (datetime.datetime.now(), url))
         return None
 
-def getNaverSearchResult(sNode, search_text, page_start, display):
-    base = "https://openapi.naver.com/v1/search"
-    node = "/%s.json" % sNode
-    parameters = "?query=%s&start=%s&display=%s" % (urllib.parse.quote(search_text), page_start, display)
-    url = base + node + parameters
+def getNaverSearchResult(sNode, search_text, page_start, display): # Get Naver search result as json
+    base = "https://openapi.naver.com/v1/search" # Naver API base url
+    node = "/%s.json" % sNode # Naver API request node
+    parameters = "?query=%s&start=%s&display=%s" % (urllib.parse.quote(search_text), page_start, display) # Naver API request parameters
+    url = base + node + parameters # Naver API full url
 
-    retData = get_request_url(url)
+    retData = get_request_url(url) # Get response data
 
     if (retData == None):
-        return None
+        return None # If response is fail return None
     else:
-        return json.loads(retData)
+        return json.loads(retData) # Returns json data
 
-def getPostData(sNode, post, jsonResult):
+def getPostData(sNode, post, jsonResult): # Get post processed data
     org_link = ""
 
+    # parse data from json
     title = post['title']
     link = post["link"]
     description = post['description']
 
+    # Shape data into certain format by source
     if (sNode == "news"):
         org_link = post['originallink']
         link = post['link']
@@ -68,27 +70,27 @@ def getPostData(sNode, post, jsonResult):
 
 def main():
     nodeName = ["blog", "news", "cafearticle"]
-    search_text = str(input("검색어를 입력하세요: \n"))
+    search_text = str(input("검색어를 입력하세요: \n")) # Get search text from user
     display_count = 100
 
     for sNode in nodeName:
         jsonResult = []
         
-        jsonSearch = getNaverSearchResult(sNode, search_text, 1, display_count)
+        jsonSearch = getNaverSearchResult(sNode, search_text, 1, display_count) # Get Naver search result as json
 
-        while ((jsonSearch != None) and (jsonSearch['display'] != 0)):
+        while ((jsonSearch != None) and (jsonSearch['display'] != 0)): # If response data is present
             for post in jsonSearch['items']:
-                getPostData(sNode, post, jsonResult)
+                getPostData(sNode, post, jsonResult) # Get post processed data
 
-            nStart = jsonSearch['start'] + jsonSearch['display']
-            jsonSearch = getNaverSearchResult(sNode, search_text, nStart, display_count)
+            nStart = jsonSearch['start'] + jsonSearch['display'] # Get next start number
+            jsonSearch = getNaverSearchResult(sNode, search_text, nStart, display_count) # Search again
         
-        with open('%s_naver_%s.json' % (search_text, sNode), 'w', encoding='utf8') as outfile:
+        with open('%s_naver_%s.json' % (search_text, sNode), 'w', encoding='utf8') as outfile: # Save json data as file
             print(jsonResult)
             retJson = json.dumps(jsonResult, indent=4, sort_keys=True, ensure_ascii=False)
-            outfile.write(retJson)
+            outfile.write(retJson) # Write json data to file
 
-    print('%s_naver_%s.json SAVED' % (search_text, sNode))
+    print('%s_naver_%s.json SAVED' % (search_text, sNode)) # Print success message
 
 if (__name__ == "__main__"):
     main()
